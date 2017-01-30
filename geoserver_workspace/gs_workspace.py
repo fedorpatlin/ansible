@@ -1,12 +1,29 @@
 #!/usr/bin/python
 # -*- coding: UTF-8 -*-
 
-from ansible.module_utils.basic import AnsibleModule
-import requests
 import json
+import requests
 from requests.auth import HTTPBasicAuth
+from ansible.module_utils.basic import AnsibleModule
 
-class GsWorkspace:
+
+DOCUMENTATION = """
+---
+module = gs_workspace
+short_description: Creates geoserver (geoserver.org) workspace using rest api.
+Requires requests library to be installed on target host.
+"""
+EXAMPLES = """
+gs_workspace host='localhost' port='8080' user='admin' password='geoserver' name='myworkspace' default='yes' state='present'
+
+Creates workspace with name 'myworkspace' ands point default workspace to it.
+
+"""
+
+class GsWorkspace(object):
+    """
+    class to hold all global variables
+    """
     def __init__(self, name, is_default_workspace, uri, session, state):
         self.name = name
         self.default = is_default_workspace
