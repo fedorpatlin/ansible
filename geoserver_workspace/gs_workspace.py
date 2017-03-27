@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
 import json
@@ -14,10 +14,8 @@ short_description: Creates geoserver (geoserver.org) workspace using rest api.
 Requires requests library to be installed on target host.
 """
 EXAMPLES = """
-gs_workspace host='localhost' port='8080' user='admin' password='geoserver' name='myworkspace' default='yes' state='present'
-
-Creates workspace with name 'myworkspace' ands point default workspace to it.
-
+gs_workspace baseurl='http://localhost:8080/geoserver' user='admin' password='geoserver' name='myworkspace' default='yes' state='present'
+# Creates workspace with name 'myworkspace' ands point default workspace to it.
 """
 
 class GsWorkspace(object):
@@ -92,41 +90,33 @@ def main():
     """Module initialization"""
     module = AnsibleModule(
         argument_spec=dict(
-            secure=dict(default=True, type='bool'),
-            host=dict(default='localhost'),
-            port=dict(default='8080'),
+            baseurl=dict(default='http://localhost:8080/geoserver'),
             user=dict(default='admin'),
-            path=dict(default='/geoserver'),
             password=dict(default='geoserver', no_log=True),
-            state=dict(default='present', choices=['present', 'absent']),
             name=dict(required=True),
             default=dict(default=False, type='bool'),
+            state=dict(default='present', choices=['present', 'absent']),
         )
     )
     # setup parameters
-    secure = module.params.get('secure')
-    host = module.params.get('host')
-    port = module.params.get('port')
+    baseurl = module.params.get('baseurl')
     user = module.params.get('user')
-    path = module.params.get('path')
     password = module.params.get('password')
     state = module.params.get('state')
     ws_name = module.params['name']
     is_default = module.params.get('default')
-    if secure is True:
-        api_url_proto = 'https'
-    else:
-        api_url_proto = 'http'
-    api_url_template = u'{0}://{1}:{2}{3}/rest/workspaces'
-    workspace_api_url = api_url_template.format(api_url_proto, host, port, path)
+    workspace_api_url = u'{}/rest/workspaces'.format(baseurl)
     #configure basic authentication
     basic_auth = HTTPBasicAuth(user, password)
     session = requests.Session()
     session.auth = basic_auth
     session.headers['Content-Type'] = u'text/json'
     session.headers['Accept'] = u'text/json'
+    try:
+        workspace = GsWorkspace(ws_name, is_default, workspace_api_url, session, state)
+    except Exception as e:
+        module.fail_json(msg="Fatal error occured: {}".format(e))
 
-    workspace = GsWorkspace(ws_name, is_default, workspace_api_url, session, state)
     if state == 'present':
         if workspace.is_exists:
             session.close()
@@ -143,5 +133,6 @@ def main():
             module.fail_json(msg="error deleting workspace")
     else:
         module.fail_json(msg="WTF")
+
 if __name__ == '__main__':
     main()
